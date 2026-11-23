@@ -1,0 +1,739 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>LUMEN-SYNC 5X — Piloto multipantalla</title>
+<style>
+:root{color-scheme:dark;--background:#080c12;--panel:#101722;--line:#273346;--text:#f1f6fc;--muted:#a6b5c8;--cyan:#79e5ef;--green:#77e3b7;--mono:ui-monospace,Consolas,monospace;font:16px/1.45 "Segoe UI",system-ui,sans-serif}
+*{box-sizing:border-box}
+body{margin:0;background:var(--background);color:var(--text)}
+::selection{background:#27616a;color:white}
+[hidden]{display:none!important}
+button,input,select{font:inherit}
+button,select,a.button{border:1px solid #39485e;background:#172232;color:#f1f6fc;border-radius:8px;min-height:42px;padding:.52rem .84rem;font-weight:640;font-size:.89rem}
+button,a.button,select,summary{cursor:pointer}
+a.button{text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+button:hover:enabled,a.button:hover,select:hover{border-color:#6a9cac;background:#1d3142}
+button:focus-visible,a:focus-visible,select:focus-visible,summary:focus-visible,input:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
+button:disabled{opacity:.5;cursor:default}
+button.primary{background:var(--cyan);border-color:var(--cyan);color:#061c23}
+button.primary:hover:enabled{background:#b4faff;color:#061c23}
+button.danger{background:#2a171f;border-color:#694052;color:#ffc4ca}
+button.danger[aria-pressed=true]{background:#652331;color:white;border-color:#f5a3ad}
+h1,h2,p{margin:0}
+.micro,output{font: .78rem/1.5 var(--mono);letter-spacing:.035em;font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.header{border-bottom:1px solid #202b3c;background:#0d131d}
+.header-inner{max-width:80rem;margin:auto;padding:.88rem clamp(1rem,4vw,2.5rem);display:flex;align-items:center;justify-content:space-between;gap:1rem}
+.brand{display:flex;align-items:center;gap:.6rem;font-size:1rem;font-weight:820;letter-spacing:.08em}
+.brand i{width:1.28rem;height:.85rem;transform:skewX(-17deg);background:repeating-linear-gradient(90deg,var(--cyan) 0 2px,transparent 2px 4px)}
+.local-mark{display:flex;gap:.45rem;align-items:center;color:#bdd5e0;font-size:.82rem;white-space:nowrap}
+.local-mark::before,.state::before,.signal::before{content:"";width:.45rem;height:.45rem;flex:none;border-radius:50%;background:currentColor}
+.local-mark::before{color:var(--green)}
+.console{max-width:80rem;margin:auto;padding:clamp(1.1rem,3.8vw,3.15rem) clamp(1rem,4vw,2.5rem) 2.5rem;display:grid;gap:1rem}
+.section-title{display:flex;align-items:end;justify-content:space-between;gap:.75rem;flex-wrap:wrap;margin-bottom:.45rem}
+h1{font-size:clamp(1.85rem,4vw,3.3rem);line-height:1.08;letter-spacing:-.055em}
+.section-title p{margin-top:.5rem}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:13px;overflow:hidden}
+.panorama-head{display:flex;justify-content:space-between;align-items:center;gap:.65rem;flex-wrap:wrap;padding:.8rem .95rem}
+.panorama-head h2,.controls h2{font-size:1.04rem;letter-spacing:-.018em}
+.readouts{display:flex;gap:.65rem;align-items:center}
+.readouts output{min-width:8.1ch;color:#dfedf7;font-size:.98rem}
+.state{display:inline-flex;gap:.45rem;align-items:center;padding:.28rem .55rem;border:1px solid #39475a;border-radius:6px;color:#c9d6e8;white-space:nowrap}
+.state[data-status=running]{color:var(--green);border-color:#345b4d}
+.state[data-status=paused],.state[data-status=countdown]{color:#ffdb98;border-color:#62523a}
+.state[data-status=blackout]{color:#ffc2ca;border-color:#79414a}
+.panorama canvas{display:block;width:100%;aspect-ratio:8.9;min-height:126px;background:#000}
+.outputs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr))}
+.output-card{padding:.68rem .72rem;min-width:0;display:grid;gap:.27rem;justify-items:start}
+.output-card+.output-card{border-left:1px solid var(--line)}
+.output-card strong{font-size:.85rem;line-height:1.2;white-space:nowrap}
+.signal{display:inline-flex;gap:.36rem;align-items:center;color:var(--muted);font-size:.75rem}
+.signal[data-online=true]{color:var(--green)}
+.output-card .button{padding:.32rem .56rem;min-height:34px;font-size:.79rem;margin-top:.2rem}
+.controls{padding:clamp(.85rem,2vw,1.1rem);display:grid;gap:.75rem}
+.control-line,.controls-title{display:flex;gap:.55rem;align-items:center;flex-wrap:wrap}
+.controls-title{justify-content:space-between}
+.control-line .danger{margin-left:auto}
+.parameters{display:grid;grid-template-columns:1.1fr 1fr 1fr;gap:.75rem}
+label{display:grid;gap:.34rem;font-size:.87rem;font-weight:620;min-width:0}
+select{width:100%;min-width:0;padding:.55rem .65rem}
+input[type=range]{width:100%;margin:.52rem 0;accent-color:var(--cyan)}
+label .range-title{display:flex;gap:.5rem;align-items:center;justify-content:space-between}
+.range-title output{color:var(--cyan)}
+details{border-top:1px solid var(--line);padding-top:.65rem}
+summary{color:var(--cyan);font-size:.88rem;width:fit-content}
+details[open] summary{margin-bottom:.65rem}
+.calibration{display:grid;gap:.65rem}
+.calibration label{max-width:24rem}
+.calibration p{font-size:.86rem}
+.notice{font-size:.86rem;overflow-wrap:anywhere}
+.screen{position:fixed;inset:0;background:#000;overflow:hidden;touch-action:manipulation}
+.screen canvas{width:100%;height:100%;display:block}
+.screen.clean,.screen.clean *{cursor:none}
+.screen-controls{position:absolute;left:clamp(.65rem,2vw,1.25rem);bottom:clamp(.65rem,2vw,1.25rem);max-width:calc(100% - 1.3rem);background:#0c131eea;border:1px solid #30445b;padding:.72rem .85rem;border-radius:10px;display:grid;gap:.48rem}
+.screen-info,.screen-actions{display:flex;align-items:center;gap:.55rem;flex-wrap:wrap}
+.screen-info .micro{color:var(--cyan)}
+.screen-actions button{min-height:36px;font-size:.83rem}
+.screen-controls p{font-size:.84rem}
+@media(max-width:650px){
+  .parameters{grid-template-columns:1fr 1fr}.parameters>label:last-child{grid-column:1/-1}
+  .control-line .danger{margin-left:0}.outputs{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .output-card:nth-child(4){border-left:0}
+  .output-card:nth-child(n+4){border-top:1px solid var(--line)}
+  .output-card{padding:.6rem}
+}
+@media(max-width:365px){.parameters{grid-template-columns:1fr}.header-inner{gap:.45rem}.brand{font-size:.88rem}}
+</style>
+</head>
+<body>
+<div id="console-view" hidden>
+  <header class="header"><div class="header-inner">
+    <div class="brand"><i aria-hidden="true"></i>LUMEN-SYNC 5X</div>
+    <span class="local-mark">Piloto local</span>
+  </div></header>
+  <main class="console">
+    <div class="section-title">
+      <div><h1>Escenario panorámico</h1><p class="muted">Una escena compartida entre cinco pantallas.</p></div>
+    </div>
+    <section class="panel panorama" aria-labelledby="monitor-title">
+      <div class="panorama-head">
+        <h2 id="monitor-title">Simulador de cinco pantallas</h2>
+        <div class="readouts">
+          <span id="transport-status" class="state micro">En espera</span>
+          <output id="timecode" aria-label="Tiempo del espectáculo">00:00.000</output>
+        </div>
+      </div>
+      <canvas id="preview" aria-label="Vista panorámica de las cinco salidas"></canvas>
+      <div id="outputs" class="outputs"></div>
+    </section>
+    <section class="panel controls" aria-labelledby="controls-title">
+      <div class="controls-title"><h2 id="controls-title">Reproducción</h2></div>
+      <div class="control-line">
+        <button id="play" class="primary" type="button">Reproducir</button>
+        <button id="reset" type="button">Volver a cero</button>
+        <button id="blackout" class="danger" type="button" aria-pressed="false">Blackout</button>
+      </div>
+      <div class="parameters">
+        <label>Escena<select id="scene"></select></label>
+        <label>Paleta<select id="palette"></select></label>
+        <label for="speed">
+          <span class="range-title">Velocidad <output id="speed-value"></output></span>
+          <input id="speed" type="range" min=".5" max="1.5" step=".05" value="1">
+        </label>
+      </div>
+      <details>
+        <summary>Calibración y cuenta atrás</summary>
+        <div class="calibration">
+          <label for="gap">
+            <span class="range-title">Compensación de marco <output id="gap-value"></output></span>
+            <input id="gap" type="range" min="0" max="240" step="5" value="0">
+          </label>
+          <p class="muted">Añade distancia virtual entre monitores sin dibujar sobre el marco.</p>
+          <div><button id="countdown" type="button">Iniciar en 3 segundos</button></div>
+        </div>
+      </details>
+    </section>
+    <p id="local-note" class="muted notice">Abre cada salida en una ventana del mismo navegador para llevarla a su monitor.</p>
+  </main>
+</div>
+<main id="screen-view" class="screen" hidden>
+  <canvas id="projection" aria-label="Salida de luz"></canvas>
+  <section id="screen-controls" class="screen-controls" aria-label="Controles de pantalla">
+    <div class="screen-info"><strong id="screen-name"></strong><span id="screen-time" class="micro">00:00.000</span></div>
+    <div class="screen-actions">
+      <button id="fullscreen" class="primary" type="button">Pantalla completa</button>
+      <button id="hide-controls" type="button">Ocultar controles</button>
+    </div>
+    <p class="muted">Pulsa H o haz doble clic para mostrar los controles.</p>
+    <p id="screen-error" role="status" hidden></p>
+  </section>
+</main>
+<script>
+'use strict';
+
+const COUNT = 5;
+const WIDTH = 1920;
+const HEIGHT = 1080;
+const $ = id => document.getElementById(id);
+const put = (el, text) => { if (el.textContent !== text) el.textContent = text; };
+const params = new URLSearchParams(location.search);
+const output = /^[1-5]$/.test(params.get('pantalla') ?? '') ? Number(params.get('pantalla')) : 0;
+const scoped = 'lumen-sync-piloto.v1:' + location.pathname;
+const stateKey = scoped + ':estado';
+const pulseKey = scoped + ':presencia';
+const windowId = Math.random().toString(36).slice(2) + Date.now().toString(36);
+const visibleWindows = new Map();
+const PALETTES = {
+  neon: {name:'Neón cian / magenta',bg:'#03050a',primary:'#00f5d4',secondary:'#ff007f',accent:'#7b2cbf'},
+  aurora: {name:'Aurora boreal',bg:'#020806',primary:'#10b981',secondary:'#8b5cf6',accent:'#06b6d4'},
+  fuego: {name:'Fuego / ámbar solar',bg:'#080302',primary:'#ff9e00',secondary:'#ff2a00',accent:'#ffd166'},
+  hielo: {name:'Blanco / hielo',bg:'#020408',primary:'#ffffff',secondary:'#93c5fd',accent:'#e0f2fe'}
+};
+
+function drawAmbientGrid(ctx, w, h, pal, t) {
+  ctx.save();
+  ctx.strokeStyle = pal.primary;
+  ctx.globalAlpha = 0.06;
+  ctx.lineWidth = 2;
+
+  const step = 180;
+  const shiftX = (t * 40) % step;
+  for (let x = -step + shiftX; x < w + step; x += step) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, h);
+    ctx.stroke();
+  }
+  for (let y = step; y < h; y += step) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(w, y);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// --- ESCENA 1: ORBE VIAJERO (Demostración perfecta de cruce entre pantallas) ---
+function renderSceneOrbe(ctx, w, h, t, pal, intensity) {
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+
+  const margin = 220;
+  const travelSpan = w - margin * 2;
+  // Ciclo de 10 segundos ida y vuelta suave (coseno) para cruzar las 5 pantallas
+  const cyclePeriod = 10.0;
+  const phase = (t / cyclePeriod) * Math.PI * 2;
+  const normX = 0.5 - 0.5 * Math.cos(phase); // 0 -> 1 -> 0
+  const orbX = margin + normX * travelSpan;
+  const orbY = h * 0.5 + Math.sin(t * 1.9) * (h * 0.24);
+  const baseRadius = 115 * intensity;
+
+  // Haz horizontal de suelo/techo que acompaña al orbe
+  const beamGrad = ctx.createLinearGradient(orbX - 900, 0, orbX + 900, 0);
+  beamGrad.addColorStop(0, 'rgba(0,0,0,0)');
+  beamGrad.addColorStop(0.5, pal.secondary);
+  beamGrad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.globalAlpha = 0.18;
+  ctx.fillStyle = beamGrad;
+  ctx.fillRect(orbX - 900, 0, 1800, h);
+
+  // Estela de 28 nodos calculados en el pasado determinista (t - dt)
+  const trailCount = 28;
+  for (let i = trailCount; i >= 1; i--) {
+    const dt = i * 0.032;
+    const pastT = Math.max(0, t - dt);
+    const pastPhase = (pastT / cyclePeriod) * Math.PI * 2;
+    const pastNormX = 0.5 - 0.5 * Math.cos(pastPhase);
+    const px = margin + pastNormX * travelSpan;
+    const py = h * 0.5 + Math.sin(pastT * 1.9) * (h * 0.24);
+    const ratio = 1 - i / (trailCount + 1);
+
+    ctx.beginPath();
+    ctx.arc(px, py, baseRadius * 0.85 * ratio, 0, Math.PI * 2);
+    ctx.fillStyle = i % 2 === 0 ? pal.primary : pal.secondary;
+    ctx.globalAlpha = ratio * 0.26;
+    ctx.fill();
+  }
+
+  // Halo atmosférico exterior enorme (para iluminar dos pantallas a la vez al cruzar bordes)
+  const outerRadius = baseRadius * 3.8;
+  const halo = ctx.createRadialGradient(orbX, orbY, baseRadius * 0.1, orbX, orbY, outerRadius);
+  halo.addColorStop(0, '#ffffff');
+  halo.addColorStop(0.22, pal.primary);
+  halo.addColorStop(0.55, pal.secondary);
+  halo.addColorStop(1, 'rgba(0, 0, 0, 0)');
+
+  ctx.globalAlpha = 0.92;
+  ctx.fillStyle = halo;
+  ctx.beginPath();
+  ctx.arc(orbX, orbY, outerRadius, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Anillos orbitales girando alrededor del orbe
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 4 * intensity;
+  ctx.globalAlpha = 0.75;
+  ctx.beginPath();
+  ctx.ellipse(orbX, orbY, baseRadius * 1.55, baseRadius * 0.55, t * 2.4, 0, Math.PI * 2);
+  ctx.stroke();
+
+  ctx.strokeStyle = pal.primary;
+  ctx.beginPath();
+  ctx.ellipse(orbX, orbY, baseRadius * 1.55, baseRadius * 0.55, -t * 1.8 + 1.1, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Núcleo incandescente central
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.arc(orbX, orbY, baseRadius * 0.52, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+// --- ESCENA 2: ONDAS EXPANSIVAS SINCRONIZADAS ---
+function renderSceneOndas(ctx, w, h, t, pal, intensity) {
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+
+  const centerX = w * 0.5 + Math.sin(t * 0.5) * (w * 0.22);
+  const centerY = h * 0.5;
+  const maxDist = w * 0.85;
+  const waveCount = 7;
+
+  for (let i = 0; i < waveCount; i++) {
+    const progress = ((t * 0.35 + i / waveCount) % 1);
+    const radius = progress * maxDist;
+    const alpha = Math.sin(progress * Math.PI) * 0.85;
+
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+    ctx.strokeStyle = i % 2 === 0 ? pal.primary : pal.secondary;
+    ctx.lineWidth = (28 * intensity) * (1 - progress * 0.5);
+    ctx.globalAlpha = alpha;
+    ctx.stroke();
+  }
+
+  // Onda sinusoidal continua de extremo a extremo de las 5 pantallas
+  ctx.beginPath();
+  ctx.lineWidth = 10 * intensity;
+  ctx.strokeStyle = '#ffffff';
+  ctx.globalAlpha = 0.85;
+  const step = 30;
+  for (let x = 0; x <= w; x += step) {
+    const y = h * 0.5 + Math.sin(x * 0.0022 - t * 4.5) * (260 * intensity) * Math.sin(t * 1.2 + x * 0.0005);
+    if (x === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+// --- ESCENA 3: ESCÁNER LÁSER PANORÁMICO ---
+function renderSceneEscaner(ctx, w, h, t, pal, intensity) {
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+
+  const beamCount = 4;
+  for (let i = 0; i < beamCount; i++) {
+    const speedFactor = 0.45 + i * 0.14;
+    const posNorm = 0.5 + 0.5 * Math.sin(t * speedFactor + i * 1.57);
+    const x = posNorm * w;
+    const beamW = (140 + i * 35) * intensity;
+
+    const grad = ctx.createLinearGradient(x - beamW, 0, x + beamW, 0);
+    const color = i % 2 === 0 ? pal.primary : pal.secondary;
+    grad.addColorStop(0, 'rgba(0,0,0,0)');
+    grad.addColorStop(0.45, color);
+    grad.addColorStop(0.5, '#ffffff');
+    grad.addColorStop(0.55, color);
+    grad.addColorStop(1, 'rgba(0,0,0,0)');
+
+    ctx.fillStyle = grad;
+    ctx.globalAlpha = 0.85;
+    ctx.fillRect(x - beamW, 0, beamW * 2, h);
+  }
+
+  // Haces diagonales cruzados desde las esquinas superiores
+  const angle = Math.sin(t * 1.3) * 0.55;
+  const pivotX = w * 0.5;
+  ctx.translate(pivotX, -100);
+  ctx.rotate(angle);
+  const coneGrad = ctx.createLinearGradient(0, 0, 0, h * 1.6);
+  coneGrad.addColorStop(0, '#ffffff');
+  coneGrad.addColorStop(0.3, pal.accent);
+  coneGrad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = coneGrad;
+  ctx.globalAlpha = 0.35;
+  ctx.beginPath();
+  ctx.moveTo(-40, 0);
+  ctx.lineTo(40, 0);
+  ctx.lineTo(650 * intensity, h * 1.6);
+  ctx.lineTo(-650 * intensity, h * 1.6);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.restore();
+}
+
+// --- ESCENA 4: LLUVIA DE METEOROS DETERMINISTA ---
+function renderSceneMeteoros(ctx, w, h, t, pal, intensity) {
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+
+  const count = 42;
+  for (let i = 0; i < count; i++) {
+    // Semilla pseudoaleatoria determinista por índice `i`
+    const seed1 = Math.sin(i * 12.9898) * 43758.5453;
+    const r1 = seed1 - Math.floor(seed1);
+    const seed2 = Math.sin(i * 78.233) * 29413.123;
+    const r2 = seed2 - Math.floor(seed2);
+
+    const fallSpeed = 0.28 + r1 * 0.42;
+    const life = (t * fallSpeed + r2) % 1;
+    const startX = r1 * (w + 1200) - 400;
+    const x = startX + life * 950;
+    const y = -150 + life * (h + 350);
+    const len = (240 + r2 * 260) * intensity;
+
+    const grad = ctx.createLinearGradient(x, y, x - len * 0.65, y - len * 0.75);
+    grad.addColorStop(0, '#ffffff');
+    grad.addColorStop(0.25, i % 2 === 0 ? pal.primary : pal.secondary);
+    grad.addColorStop(1, 'rgba(0,0,0,0)');
+
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = (5 + r1 * 8) * intensity;
+    ctx.lineCap = 'round';
+    ctx.globalAlpha = Math.sin(life * Math.PI);
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x - len * 0.65, y - len * 0.75);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+function renderSoftPulse(ctx, w, h, t, pal) {
+  const envelope = .5 - .5 * Math.cos(t * 2 * Math.PI / 5);
+  const glow = ctx.createLinearGradient(0, 0, w, 0);
+  glow.addColorStop(0, pal.secondary);
+  glow.addColorStop(.5, pal.primary);
+  glow.addColorStop(1, pal.secondary);
+  ctx.save();
+  ctx.globalAlpha = envelope * .58;
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, w, h);
+  ctx.restore();
+}
+const SCENES = {
+  orbe:{name:'Orbe viajero',draw:renderSceneOrbe},
+  ondas:{name:'Ondas expansivas',draw:renderSceneOndas},
+  escaner:{name:'Escáner panorámico',draw:renderSceneEscaner},
+  meteoros:{name:'Lluvia de meteoros',draw:renderSceneMeteoros},
+  pulso:{name:'Pulso suave',draw:renderSoftPulse}
+};
+const initial = {
+  revision:0, kind:'idle', anchor:0, elapsed:0, scene:'orbe', palette:'neon', speed:1, gap:0, blackout:false
+};
+let state = {...initial};
+let storageOK = false;
+let channel = null;
+let scheduleFrame = () => {};
+let updateControls = () => {};
+
+function readState() {
+  try { return JSON.parse(localStorage.getItem(stateKey)); }
+  catch { return null; }
+}
+try {
+  localStorage.setItem(scoped + ':test','1');
+  localStorage.removeItem(scoped + ':test');
+  storageOK = true;
+} catch { /* El simulador sigue funcionando en la misma página. */ }
+try { channel = new BroadcastChannel(scoped); }
+catch { /* Los cambios de almacenamiento cubren las ventanas cuando están disponibles. */ }
+
+function accept(next) {
+  if (!next || !Number.isSafeInteger(next.revision) || next.revision <= state.revision ||
+      !['idle','running','paused'].includes(next.kind) || !Object.hasOwn(SCENES,next.scene) ||
+      !Object.hasOwn(PALETTES,next.palette) || !Number.isFinite(next.anchor) || !Number.isFinite(next.elapsed) ||
+      next.elapsed < 0 || !Number.isFinite(next.speed) || next.speed < .5 || next.speed > 1.5 ||
+      !Number.isInteger(next.gap) || next.gap < 0 || next.gap > 240 || typeof next.blackout !== 'boolean') return;
+  state = next;
+  updateControls();
+  scheduleFrame();
+}
+accept(readState());
+function send(data) { channel?.postMessage(data); }
+function timing(s, now) {
+  if (s.kind !== 'running') return {kind:s.kind, elapsed:s.elapsed};
+  if (now < s.anchor) return {kind:'countdown', elapsed:s.elapsed, remaining:(s.anchor - now) / 1000};
+  return {kind:'running', elapsed:s.elapsed + (now - s.anchor) / 1000 * s.speed};
+}
+function change(action) {
+  const commit = () => {
+    accept(readState());
+    const now = Date.now();
+    const next = {...state,...action(state, now),revision:Math.max(state.revision + 1, now)};
+    try { localStorage.setItem(stateKey,JSON.stringify(next)); } catch { /* BroadcastChannel sigue activo. */ }
+    accept(next);
+    send({type:'state',state:next});
+  };
+  if (navigator.locks) void navigator.locks.request(stateKey, commit);
+  else commit();
+}
+function recordWindow(message) {
+  if (output || !Number.isInteger(message.output) || message.output < 1 || message.output > COUNT ||
+      typeof message.id !== 'string') return;
+  if (message.type === 'bye') visibleWindows.delete(message.id);
+  else visibleWindows.set(message.id,{slot:message.output,at:Date.now()});
+  updatePresence();
+}
+function receive(message) {
+  if (!message) return;
+  if (message.type === 'state') accept(message.state);
+  else if (message.type === 'request' && !output) {
+    accept(readState());
+    send({type:'state',state});
+  } else if (message.type === 'present' || message.type === 'bye') recordWindow(message);
+}
+if (channel) channel.onmessage = event => receive(event.data);
+window.addEventListener('storage', event => {
+  if (event.key !== stateKey && event.key !== pulseKey) return;
+  try {
+    const message = JSON.parse(event.newValue);
+    if (event.key === stateKey) accept(message);
+    else receive(message);
+  } catch { /* Cada estado válido lleva su propia revisión. */ }
+});
+function markWindow(type = 'present') {
+  if (!output) return;
+  const message = {type,id:windowId,output};
+  send(message);
+  if (!channel) {
+    try { localStorage.setItem(pulseKey,JSON.stringify({...message,at:Date.now()})); } catch {}
+  }
+}
+const statusCells = [];
+function updatePresence() {
+  const now = Date.now();
+  const counts = Array(COUNT).fill(0);
+  for (const [id, value] of visibleWindows) {
+    if (now - value.at > 12000) visibleWindows.delete(id);
+    else counts[value.slot - 1]++;
+  }
+  statusCells.forEach((element,i) => {
+    const count = counts[i];
+    const online = String(count > 0);
+    if (element.dataset.online !== online) element.dataset.online = online;
+    put(element,count > 1 ? count + ' ventanas' : count === 1 ? 'Abierta' : 'Sin ventana');
+  });
+}
+
+function timecode(seconds) {
+  const t = Math.floor(Math.max(0,seconds) * 1000);
+  const digits = (value,n = 2) => String(value).padStart(n,'0');
+  return digits(Math.floor(t / 60000)) + ':' + digits(Math.floor(t / 1000) % 60) + '.' + digits(t % 1000,3);
+}
+function showScene(ctx, w, t, s) {
+  const pal = PALETTES[s.palette];
+  ctx.fillStyle = s.blackout ? '#000' : pal.bg;
+  ctx.fillRect(0,0,w,HEIGHT);
+  if (s.blackout) return;
+  drawAmbientGrid(ctx,w,HEIGHT,pal,t);
+  SCENES[s.scene].draw(ctx,w,HEIGHT,t,pal,1);
+}
+function paint(ctx, canvas, t) {
+  const total = COUNT * WIDTH + (COUNT - 1) * state.gap;
+  const left = output ? (output - 1) * (WIDTH + state.gap) : 0;
+  const scaleX = canvas.width / (output ? WIDTH : total);
+  ctx.save();
+  ctx.setTransform(scaleX,0,0,canvas.height / HEIGHT,-left * scaleX,0);
+  showScene(ctx,total,t.elapsed,state);
+  if (!output) {
+    for (let i = 1; i < COUNT; i++) {
+      const seam = i * WIDTH + (i - 1) * state.gap;
+      ctx.fillStyle = state.blackout ? '#000' : '#070c13';
+      ctx.fillRect(seam,0,state.gap,HEIGHT);
+      if (!state.blackout) {
+        ctx.fillStyle = 'rgba(174,219,240,.3)';
+        ctx.fillRect(seam,0,Math.max(2 / scaleX,1),HEIGHT);
+      }
+    }
+  }
+  ctx.restore();
+}
+
+if (!output) {
+  $('console-view').hidden = false;
+  for (let i = 1; i <= COUNT; i++) {
+    const url = new URL(location.href);
+    url.search = new URLSearchParams({pantalla:i});
+    url.hash = '';
+    const card = document.createElement('div');
+    card.className = 'output-card';
+    card.innerHTML = '<strong>Pantalla 0' + i + '</strong><span class="signal micro">Sin ventana</span>';
+    statusCells.push(card.lastElementChild);
+    const link = document.createElement('a');
+    link.className = 'button';
+    link.href = url;
+    link.target = 'lumen-screen-' + i;
+    link.textContent = 'Abrir ventana';
+    link.setAttribute('aria-label','Abrir ventana de Pantalla 0' + i);
+    link.addEventListener('click', event => {
+      if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+      event.preventDefault();
+      const w = window.open(url,link.target,'popup,width=854,height=500');
+      if (!w) put($('local-note'),'El navegador bloqueó la ventana. Permite las ventanas emergentes o abre el enlace en otra pestaña.');
+      else w.focus();
+    });
+    card.append(link);
+    $('outputs').append(card);
+  }
+  for (const [key, value] of Object.entries(SCENES)) $('scene').add(new Option(value.name,key));
+  for (const [key, value] of Object.entries(PALETTES)) $('palette').add(new Option(value.name,key));
+  updateControls = () => {
+    $('scene').value = state.scene;
+    $('palette').value = state.palette;
+    $('speed').value = state.speed;
+    $('gap').value = state.gap;
+    put($('speed-value'),state.speed.toFixed(2) + '×');
+    put($('gap-value'),state.gap + ' px');
+    $('blackout').setAttribute('aria-pressed',state.blackout);
+    put($('blackout'),state.blackout ? 'Quitar blackout' : 'Blackout');
+  };
+  $('play').addEventListener('click',() => change((s,now) => {
+    const current = timing(s,now);
+    if (current.kind === 'countdown') return {kind:'idle',anchor:0,elapsed:0};
+    if (s.kind === 'running') return {kind:'paused',elapsed:current.elapsed};
+    return {kind:'running',anchor:now};
+  }));
+  $('reset').addEventListener('click',() => change(() => ({kind:'idle',anchor:0,elapsed:0})));
+  $('blackout').addEventListener('click',() => change(s => ({blackout:!s.blackout})));
+  $('countdown').addEventListener('click',() => change((_,now) => ({kind:'running',anchor:now + 3000,elapsed:0})));
+  $('scene').addEventListener('change',e => {
+    const scene = e.target.value;
+    change(() => ({scene}));
+  });
+  $('palette').addEventListener('change',e => {
+    const palette = e.target.value;
+    change(() => ({palette}));
+  });
+  $('speed').addEventListener('input',e => {
+    const speed = Number(e.target.value);
+    change((s,now) => {
+      const current = timing(s,now);
+      return current.kind === 'running' ? {speed,anchor:now,elapsed:current.elapsed} : {speed};
+    });
+  });
+  $('gap').addEventListener('input',e => {
+    const gap = Number(e.target.value);
+    change(() => ({gap}));
+  });
+  updateControls();
+  setInterval(updatePresence,2000);
+  if (location.protocol === 'file:') {
+    put($('local-note'),'El simulador funciona en esta página. Para sincronizar ventanas, abre el HTML desde localhost y usa el mismo perfil del navegador.');
+  } else if (!channel && !storageOK) {
+    put($('local-note'),'Este navegador bloquea la comunicación entre ventanas. El simulador integrado sigue disponible.');
+  }
+} else {
+  $('screen-view').hidden = false;
+  document.title = 'Pantalla 0' + output + ' · LUMEN-SYNC 5X';
+  put($('screen-name'),'Pantalla 0' + output);
+  const panel = $('screen-controls');
+  let controls = true;
+  let manual = false;
+  let lastTap = 0;
+  function showControls(visible) {
+    controls = visible;
+    panel.hidden = !visible;
+    $('screen-view').classList.toggle('clean',!visible);
+  }
+  function toggleControls() {
+    if (state.blackout) return;
+    manual = !controls;
+    showControls(manual);
+    scheduleFrame();
+  }
+  function updateScreenControls() {
+    if (state.blackout) manual = false;
+    if (state.blackout || (!manual && state.kind === 'running')) showControls(false);
+  }
+  updateControls = updateScreenControls;
+  updateScreenControls();
+  $('hide-controls').addEventListener('click',() => { manual = false; showControls(false); });
+  $('projection').addEventListener('dblclick',e => {
+    if (!e.sourceCapabilities?.firesTouchEvents && (!lastTap || performance.now() - lastTap > 400)) toggleControls();
+  });
+  $('projection').addEventListener('pointerup',e => {
+    if (e.pointerType !== 'touch') return;
+    const now = performance.now();
+    if (lastTap && now - lastTap < 340) toggleControls();
+    lastTap = now;
+  });
+  document.addEventListener('keydown',e => {
+    if (!e.repeat && !e.altKey && !e.ctrlKey && !e.metaKey && e.key.toLowerCase() === 'h') toggleControls();
+  });
+  document.addEventListener('fullscreenchange',() => {
+    put($('fullscreen'),document.fullscreenElement ? 'Salir de pantalla completa' : 'Pantalla completa');
+  });
+  $('fullscreen').addEventListener('click',async () => {
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      else {
+        if (!$('screen-view').requestFullscreen) throw new Error('Pantalla completa no está disponible en este navegador.');
+        await $('screen-view').requestFullscreen();
+        manual = false;
+        showControls(false);
+      }
+      $('screen-error').hidden = true;
+    } catch (error) {
+      put($('screen-error'),error.message);
+      $('screen-error').hidden = false;
+    }
+  });
+  if (location.protocol === 'file:') {
+    put($('screen-error'),'Abre esta salida desde la consola en localhost para sincronizarla con otras ventanas.');
+    $('screen-error').hidden = false;
+  }
+  send({type:'request'});
+  markWindow();
+  setInterval(() => markWindow(),2500);
+  window.addEventListener('pagehide',() => markWindow('bye'));
+}
+
+const canvas = $(output ? 'projection' : 'preview');
+const ctx = canvas.getContext('2d',{alpha:false});
+const previewStatus = $('transport-status');
+const time = $(output ? 'screen-time' : 'timecode');
+let frame = 0;
+let lastPaint = '';
+scheduleFrame = () => {
+  if (!frame && !document.hidden) frame = requestAnimationFrame(render);
+};
+function render() {
+  frame = 0;
+  const current = timing(state,Date.now());
+  const stamp = state.revision + ':' + canvas.width + ':' + canvas.height;
+  const motion = current.kind === 'running' && !state.blackout;
+  if (motion || stamp !== lastPaint) {
+    paint(ctx,canvas,current);
+    lastPaint = stamp;
+  }
+  put(time,timecode(current.elapsed));
+  if (!output) {
+    const kind = state.blackout ? 'blackout' : current.kind;
+    const labels = {blackout:'Blackout',idle:'En espera',paused:'En pausa',running:'Reproduciendo'};
+    put(previewStatus,kind === 'countdown' ? 'Inicio en ' + Math.ceil(current.remaining) + ' s' : labels[kind]);
+    if (previewStatus.dataset.status !== kind) previewStatus.dataset.status = kind;
+    put($('play'),current.kind === 'countdown' ? 'Cancelar inicio' : current.kind === 'running' ? 'Pausar' : current.kind === 'paused' ? 'Continuar' : 'Reproducir');
+  }
+  if (state.kind === 'running') scheduleFrame();
+}
+new ResizeObserver(() => {
+  const box = canvas.getBoundingClientRect();
+  if (!box.width || !box.height) return;
+  const ratio = Math.min(devicePixelRatio || 1,1.5,2560 / Math.max(box.width,box.height));
+  canvas.width = Math.round(box.width * ratio);
+  canvas.height = Math.round(box.height * ratio);
+  lastPaint = '';
+  scheduleFrame();
+}).observe(canvas);
+function restore() {
+  accept(readState());
+  markWindow();
+  scheduleFrame();
+}
+window.addEventListener('pageshow',restore);
+document.addEventListener('visibilitychange',() => { if (!document.hidden) restore(); });
+scheduleFrame();
+</script>
+</body>
+</html>
